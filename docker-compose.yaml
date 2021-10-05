@@ -1,0 +1,19 @@
+version: '3.7'
+
+services:
+
+  app:
+    image: davidsongomes/php-apache
+    container_name: app
+    volumes:
+      - ./:/var/www/html/
+    networks:
+      - app-network
+    ports:
+      - 80:80
+      - 443:443
+
+networks:
+  app-network:
+    driver: bridge
+    
