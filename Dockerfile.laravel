@@ -48,9 +48,8 @@ COPY ./ssl.crt /etc/apache2/ssl/ssl.crt
 COPY ./ssl.key /etc/apache2/ssl/ssl.key
 RUN mkdir -p /var/run/apache2/
 
-RUN mkdir -p /var/lock/apache2 && \
-    mkdir -p /var/run/apache2 && \
-    chown -R www-data:www-data /var/lock/apache2 && \
+RUN rm -rf /var/run/apache2/* \
+    mkdir -p /var/run/apache2 \
     chown -R www-data:www-data /var/run/apache2
 
 RUN touch /var/log/apache2/error.log && chown www-data:www-data /var/log/apache2/error.log
