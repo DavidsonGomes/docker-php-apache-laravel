@@ -1,9 +1,19 @@
 FROM php:7.4-apache
 
-USER root
-
+# Define o diretório de trabalho
 WORKDIR /var/www/html
 
+# Copia os arquivos de configuração do Apache
+COPY ./default.web.conf /etc/apache2/sites-available/000-default.conf
+
+# Copia o arquivo de configuração do PHP
+COPY ./php.ini /usr/local/etc/php/
+
+# Copia os certificados SSL
+COPY ./ssl.crt /etc/apache2/ssl/
+COPY ./ssl.key /etc/apache2/ssl/
+
+# Instala as dependências necessárias
 RUN apt-get update && apt-get install -y \
         libpng-dev \
         zlib1g-dev \
@@ -13,34 +23,27 @@ RUN apt-get update && apt-get install -y \
         zip \
         curl \
         unzip \
+        libc-client-dev \
+        libkrb5-dev \
     && docker-php-ext-configure gd \
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-install mysqli \
     && docker-php-ext-install zip \
-    && docker-php-source delete
-
-RUN apt-get update && apt-get install -y libc-client-dev libkrb5-dev \
+    && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
+    && docker-php-ext-install imap \
     && rm -r /var/lib/apt/lists/*
 
-RUN docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
-    && docker-php-ext-install imap
+# Configura as permissões do diretório de trabalho
+RUN chown -R www-data:www-data /var/www/html
 
-ADD ./default.web.conf /etc/apache2/sites-available/000-default.conf
-
-COPY ./php.ini /usr/local/etc/php/php.ini
-
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-RUN chown -R www-data:www-data /var/www/html \
-    && a2enmod rewrite \
+# Habilita os módulos necessários do Apache
+RUN a2enmod rewrite \
     && a2enmod ssl
 
-COPY ./ssl.crt /etc/apache2/ssl/ssl.crt
-COPY ./ssl.key /etc/apache2/ssl/ssl.key
-RUN mkdir -p /var/run/apache2/
-
-RUN service apache2 start
-
+# Expose as portas utilizadas
 EXPOSE 80
 EXPOSE 443
+
+# Inicia o servidor Apache
+CMD ["apache2-foreground"]

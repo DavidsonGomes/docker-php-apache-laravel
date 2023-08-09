@@ -4,23 +4,30 @@ USER root
 
 WORKDIR /var/www/html
 
+# Instalação do Node.js e npm
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - \
+    && apt-get install -y nodejs
+
 RUN apt-get update && apt-get install -y \
         libpng-dev \
         zlib1g-dev \
         libxml2-dev \
         libzip-dev \
         libonig-dev \
+        libsodium-dev \
         zip \
         curl \
         git \
         git-flow \
         unzip \
-    && docker-php-ext-configure gd \
+    && docker-php-ext-configure gd pcntl --enable-pcntl \
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install pdo_mysql \
     && docker-php-ext-install mysqli \
     && docker-php-ext-install zip \
+    && docker-php-ext-install sodium \
     && docker-php-ext-install bcmath \
+    && docker-php-ext-install pcntl \
     && docker-php-source delete
 
 RUN pecl install -o -f redis \
@@ -40,6 +47,14 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY ./ssl.crt /etc/apache2/ssl/ssl.crt
 COPY ./ssl.key /etc/apache2/ssl/ssl.key
 RUN mkdir -p /var/run/apache2/
+
+RUN mkdir -p /var/lock/apache2 && \
+    mkdir -p /var/run/apache2 && \
+    chown -R www-data:www-data /var/lock/apache2 && \
+    chown -R www-data:www-data /var/run/apache2
+
+RUN touch /var/log/apache2/error.log && chown www-data:www-data /var/log/apache2/error.log
+
 
 RUN service apache2 start
 
